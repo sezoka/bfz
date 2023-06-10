@@ -1,5 +1,6 @@
 const std = @import("std");
 const vm = @import("vm.zig");
+const optimize = @import("optimize.zig");
 const log = std.log;
 
 // const Op = struct {
@@ -24,6 +25,8 @@ pub fn main() !void {
 
     var ops = try compile(alloc, file);
     defer ops.deinit();
+
+    try optimize.optimize(alloc, &ops);
 
     try link_program(alloc, &ops);
 
