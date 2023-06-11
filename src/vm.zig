@@ -25,12 +25,12 @@ pub const Op_Code = enum {
     nop,
 };
 
-pub const Arg = i32;
+pub const Arg = i16;
 
 pub const Op = struct {
     code: Op_Code,
-    a1: Arg,
-    a2: Arg,
+    a1: Arg = 0,
+    a2: Arg = 0,
 };
 
 pub fn interpret(ops: std.ArrayList(Op)) !void {
@@ -58,10 +58,16 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
                 sp[0] = @intCast(u8, op.a1);
             },
             .add_offset => {
-                sp[@intCast(usize, op.a2)] += @intCast(u8, op.a1);
+                const shifted = if (op.a2 < 0) sp - @intCast(usize, -op.a2) else sp + @intCast(usize, op.a2);
+                if (op.a1 < 0) {
+                    shifted[0] = @subWithOverflow(shifted[0], @intCast(u8, @rem(-op.a1, 256)))[0];
+                } else {
+                    shifted[0] = @addWithOverflow(shifted[0], @intCast(u8, @rem(op.a1, 256)))[0];
+                }
             },
             .set_offset => {
-                sp[@intCast(usize, op.a2)] = @intCast(u8, op.a1);
+                const shifted = if (op.a2 < 0) sp - @intCast(usize, -op.a2) else sp + @intCast(usize, op.a2);
+                shifted[0] = @intCast(u8, @rem(op.a1, 256));
             },
             .shift => {
                 sp = if (op.a1 < 0) sp - @intCast(usize, -op.a1) else sp + @intCast(usize, op.a1);
@@ -71,7 +77,7 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
             },
             .shift_until_zero => {
                 while (sp[0] != 0) {
-                    sp += @intCast(usize, op.a1);
+                    sp = if (op.a1 < 0) sp - @intCast(usize, -op.a1) else sp + @intCast(usize, op.a1);
                 }
             },
             .jmp_zero => {
