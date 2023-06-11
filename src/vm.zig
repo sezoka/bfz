@@ -33,6 +33,26 @@ pub const Op = struct {
     a2: Arg = 0,
 };
 
+var op_counter = [_]u32{0} ** 16;
+
+fn count_op(code: Op_Code) void {
+    op_counter[@enumToInt(code)] += 1;
+}
+
+fn print_cnt() void {
+    std.debug.print("{d} add\n", .{op_counter[@enumToInt(Op_Code.add)]});
+    std.debug.print("{d} set\n", .{op_counter[@enumToInt(Op_Code.set)]});
+    std.debug.print("{d} add_offset\n", .{op_counter[@enumToInt(Op_Code.add_offset)]});
+    std.debug.print("{d} set_offset\n", .{op_counter[@enumToInt(Op_Code.set_offset)]});
+    std.debug.print("{d} shift\n", .{op_counter[@enumToInt(Op_Code.shift)]});
+    std.debug.print("{d} mac\n", .{op_counter[@enumToInt(Op_Code.mac)]});
+    std.debug.print("{d} shift_until_zero\n", .{op_counter[@enumToInt(Op_Code.shift_until_zero)]});
+    std.debug.print("{d} jmp_zero\n", .{op_counter[@enumToInt(Op_Code.jmp_zero)]});
+    std.debug.print("{d} jmp_not_zero\n", .{op_counter[@enumToInt(Op_Code.jmp_not_zero)]});
+    std.debug.print("{d} char_out\n", .{op_counter[@enumToInt(Op_Code.char_out)]});
+    std.debug.print("{d} char_in\n", .{op_counter[@enumToInt(Op_Code.char_in)]});
+}
+
 pub fn interpret(ops: std.ArrayList(Op)) !void {
     const reader = std.io.getStdIn().reader();
     const unbuff_writer = std.io.getStdOut().writer();
@@ -49,64 +69,77 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
 
         switch (op.code) {
             .add => {
-                if (op.a1 < 0) {
-                    sp[0] = @subWithOverflow(sp[0], @intCast(u8, @rem(-op.a1, 256)))[0];
-                } else {
-                    sp[0] = @addWithOverflow(sp[0], @intCast(u8, @rem(op.a1, 256)))[0];
-                }
+                // count_op(.add);
+                @setRuntimeSafety(false);
+                sp[0] = @truncate(u8, @bitCast(u16, @intCast(i16, sp[0]) + op.a1));
             },
             .set => {
+                // count_op(.set);
+                @setRuntimeSafety(false);
                 sp[0] = @intCast(u8, op.a1);
             },
             .add_offset => {
-                const shifted = if (op.a2 < 0) sp - @intCast(usize, -op.a2) else sp + @intCast(usize, op.a2);
-                if (op.a1 < 0) {
-                    shifted[0] = @subWithOverflow(shifted[0], @intCast(u8, @rem(-op.a1, 256)))[0];
-                } else {
-                    shifted[0] = @addWithOverflow(shifted[0], @intCast(u8, @rem(op.a1, 256)))[0];
-                }
+                // count_op(.add_offset);
+                @setRuntimeSafety(false);
+                const shifted = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a2));
+                shifted[0] = @truncate(u8, @bitCast(u16, @intCast(i16, shifted[0]) + op.a1));
             },
             .set_offset => {
-                const shifted = if (op.a2 < 0) sp - @intCast(usize, -op.a2) else sp + @intCast(usize, op.a2);
-                shifted[0] = @intCast(u8, @rem(op.a1, 256));
+                // count_op(.set_offset);
+                @setRuntimeSafety(false);
+                const shifted = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a2));
+                shifted[0] = @truncate(u8, @bitCast(u16, op.a1));
             },
             .shift => {
-                sp = if (op.a1 < 0) sp - @intCast(usize, -op.a1) else sp + @intCast(usize, op.a1);
+                // count_op(.shift);
+                @setRuntimeSafety(false);
+                sp = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a1));
             },
             .mac => {
+                // count_op(.mac);
                 sp[0] += @intCast(u8, op.a1 * sp[@intCast(usize, op.a2)]);
             },
             .shift_until_zero => {
+                // count_op(.shift_until_zero);
                 while (sp[0] != 0) {
-                    sp = if (op.a1 < 0) sp - @intCast(usize, -op.a1) else sp + @intCast(usize, op.a1);
+                    sp = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a1));
                 }
             },
             .jmp_zero => {
+                @setRuntimeSafety(false);
+                // count_op(.jmp_zero);
                 if (sp[0] == 0) {
-                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, op.a1);
+                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, @bitCast(u16, op.a1));
                 } else {
                     ip += 1;
                 }
                 continue;
             },
             .jmp_not_zero => {
+                @setRuntimeSafety(false);
+                // count_op(.jmp_not_zero);
                 if (sp[0] != 0) {
-                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, op.a1);
+                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, @bitCast(u16, op.a1));
                 } else {
                     ip += 1;
                 }
                 continue;
             },
             .char_out => {
+                // count_op(.char_out);
                 try writer.writeByte(sp[0]);
                 if (sp[0] == '\n') {
                     try buff.flush();
                 }
             },
             .char_in => {
+                // count_op(.char_in);
                 sp[0] = reader.readByte() catch 0;
             },
-            .end => return,
+            .end => {
+                // print_cnt();
+                return;
+            },
             else => unreachable,
         }
 
