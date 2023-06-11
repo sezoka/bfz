@@ -214,7 +214,7 @@ fn search_seq(start: usize, arr: []vm.Op, seq: []const vm.Op_Code) usize {
             }
             i += 1;
         }
-        return pos - seq.len + 1;
+        return pos + 1 - seq.len;
     }
     return arr.len;
 }

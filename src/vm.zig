@@ -34,6 +34,7 @@ pub const Op = struct {
 };
 
 pub fn interpret(ops: std.ArrayList(Op)) !void {
+    const reader = std.io.getStdIn().reader();
     const unbuff_writer = std.io.getStdOut().writer();
     var buff = std.io.BufferedWriter(128, @TypeOf(unbuff_writer)){ .unbuffered_writer = unbuff_writer };
     const writer = buff.writer();
@@ -82,7 +83,7 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
             },
             .jmp_zero => {
                 if (sp[0] == 0) {
-                    ip = @ptrCast([*]Op, ops.items) + @intCast(usize, op.a1);
+                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, op.a1);
                 } else {
                     ip += 1;
                 }
@@ -90,7 +91,7 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
             },
             .jmp_not_zero => {
                 if (sp[0] != 0) {
-                    ip = @ptrCast([*]Op, ops.items) + @intCast(usize, op.a1);
+                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, op.a1);
                 } else {
                     ip += 1;
                 }
@@ -102,7 +103,9 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
                     try buff.flush();
                 }
             },
-            // .char_in => {},
+            .char_in => {
+                sp[0] = reader.readByte() catch 0;
+            },
             .end => return,
             else => unreachable,
         }
