@@ -46,8 +46,8 @@ fn link_program(alloc: std.mem.Allocator, ops: *std.ArrayList(vm.Op)) !void {
             },
             .loop_end => if (jumps.popOrNull()) |start_pos| {
                 op.code = .jmp_not_zero;
-                ops.items[start_pos].a1 = @intCast(i16, i + 1);
-                op.a1 = @intCast(i16, start_pos + 1);
+                ops.items[start_pos].a1 = @intCast(i + 1);
+                op.a1 = @intCast(start_pos + 1);
             } else {
                 log.err("unexpected ']': missing '['", .{});
                 return error.MissingBrace;

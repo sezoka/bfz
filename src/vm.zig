@@ -36,21 +36,21 @@ pub const Op = struct {
 var op_counter = [_]u32{0} ** 16;
 
 fn count_op(code: Op_Code) void {
-    op_counter[@enumToInt(code)] += 1;
+    op_counter[@intFromEnum(code)] += 1;
 }
 
 fn print_cnt() void {
-    std.debug.print("{d} add\n", .{op_counter[@enumToInt(Op_Code.add)]});
-    std.debug.print("{d} set\n", .{op_counter[@enumToInt(Op_Code.set)]});
-    std.debug.print("{d} add_offset\n", .{op_counter[@enumToInt(Op_Code.add_offset)]});
-    std.debug.print("{d} set_offset\n", .{op_counter[@enumToInt(Op_Code.set_offset)]});
-    std.debug.print("{d} shift\n", .{op_counter[@enumToInt(Op_Code.shift)]});
-    std.debug.print("{d} mac\n", .{op_counter[@enumToInt(Op_Code.mac)]});
-    std.debug.print("{d} shift_until_zero\n", .{op_counter[@enumToInt(Op_Code.shift_until_zero)]});
-    std.debug.print("{d} jmp_zero\n", .{op_counter[@enumToInt(Op_Code.jmp_zero)]});
-    std.debug.print("{d} jmp_not_zero\n", .{op_counter[@enumToInt(Op_Code.jmp_not_zero)]});
-    std.debug.print("{d} char_out\n", .{op_counter[@enumToInt(Op_Code.char_out)]});
-    std.debug.print("{d} char_in\n", .{op_counter[@enumToInt(Op_Code.char_in)]});
+    std.debug.print("{d} add\n", .{op_counter[@intFromEnum(Op_Code.add)]});
+    std.debug.print("{d} set\n", .{op_counter[@intFromEnum(Op_Code.set)]});
+    std.debug.print("{d} add_offset\n", .{op_counter[@intFromEnum(Op_Code.add_offset)]});
+    std.debug.print("{d} set_offset\n", .{op_counter[@intFromEnum(Op_Code.set_offset)]});
+    std.debug.print("{d} shift\n", .{op_counter[@intFromEnum(Op_Code.shift)]});
+    std.debug.print("{d} mac\n", .{op_counter[@intFromEnum(Op_Code.mac)]});
+    std.debug.print("{d} shift_until_zero\n", .{op_counter[@intFromEnum(Op_Code.shift_until_zero)]});
+    std.debug.print("{d} jmp_zero\n", .{op_counter[@intFromEnum(Op_Code.jmp_zero)]});
+    std.debug.print("{d} jmp_not_zero\n", .{op_counter[@intFromEnum(Op_Code.jmp_not_zero)]});
+    std.debug.print("{d} char_out\n", .{op_counter[@intFromEnum(Op_Code.char_out)]});
+    std.debug.print("{d} char_in\n", .{op_counter[@intFromEnum(Op_Code.char_in)]});
 }
 
 pub fn interpret(ops: std.ArrayList(Op)) !void {
@@ -61,7 +61,7 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
 
     var mem = [_]u8{0} ** 3000;
     var sp: [*]u8 = &mem;
-    var ip: [*]Op = @ptrCast([*]Op, ops.items);
+    var ip: [*]Op = @ptrCast(ops.items);
     var op: Op = undefined;
 
     while (true) {
@@ -71,45 +71,45 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
             .add => {
                 // count_op(.add);
                 @setRuntimeSafety(false);
-                sp[0] = @truncate(u8, @bitCast(u16, @intCast(i16, sp[0]) + op.a1));
+                sp[0] = @truncate(@as(u16, @bitCast(@as(i16, @intCast(sp[0])) + op.a1)));
             },
             .set => {
                 // count_op(.set);
                 @setRuntimeSafety(false);
-                sp[0] = @intCast(u8, op.a1);
+                sp[0] = @intCast(op.a1);
             },
             .add_offset => {
                 // count_op(.add_offset);
                 @setRuntimeSafety(false);
-                const shifted = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a2));
-                shifted[0] = @truncate(u8, @bitCast(u16, @intCast(i16, shifted[0]) + op.a1));
+                const shifted = @as(@TypeOf(sp), @ptrFromInt(@as(usize, @bitCast(@as(isize, @bitCast(@intFromPtr(sp))) + op.a2))));
+                shifted[0] = @truncate(@as(u16, @bitCast(@as(i16, @intCast(shifted[0])) + op.a1)));
             },
             .set_offset => {
                 // count_op(.set_offset);
                 @setRuntimeSafety(false);
-                const shifted = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a2));
-                shifted[0] = @truncate(u8, @bitCast(u16, op.a1));
+                const shifted = @as(@TypeOf(sp), @ptrFromInt(@as(usize, @bitCast(@as(isize, @bitCast(@intFromPtr(sp))) + op.a2))));
+                shifted[0] = @truncate(@as(u16, @bitCast(op.a1)));
             },
             .shift => {
                 // count_op(.shift);
                 @setRuntimeSafety(false);
-                sp = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a1));
+                sp = @as(@TypeOf(sp), @ptrFromInt(@as(usize, @bitCast(@as(isize, @bitCast(@intFromPtr(sp))) + op.a1))));
             },
             .mac => {
                 // count_op(.mac);
-                sp[0] += @intCast(u8, op.a1 * sp[@intCast(usize, op.a2)]);
+                sp[0] += @intCast(op.a1 * sp[@intCast(op.a2)]);
             },
             .shift_until_zero => {
                 // count_op(.shift_until_zero);
                 while (sp[0] != 0) {
-                    sp = @intToPtr(@TypeOf(sp), @bitCast(usize, @bitCast(isize, @ptrToInt(sp)) + op.a1));
+                    sp = @as(@TypeOf(sp), @ptrFromInt(@as(usize, @bitCast(@as(isize, @bitCast(@intFromPtr(sp))) + op.a1))));
                 }
             },
             .jmp_zero => {
                 @setRuntimeSafety(false);
                 // count_op(.jmp_zero);
                 if (sp[0] == 0) {
-                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, @bitCast(u16, op.a1));
+                    ip = @as([*]Op, @ptrCast(ops.items.ptr)) + @as(usize, @intCast(@as(u16, @as(u16, @bitCast(op.a1)))));
                 } else {
                     ip += 1;
                 }
@@ -119,7 +119,7 @@ pub fn interpret(ops: std.ArrayList(Op)) !void {
                 @setRuntimeSafety(false);
                 // count_op(.jmp_not_zero);
                 if (sp[0] != 0) {
-                    ip = @ptrCast([*]Op, ops.items.ptr) + @intCast(usize, @bitCast(u16, op.a1));
+                    ip = @as([*]Op, @ptrCast(ops.items.ptr)) + @as(usize, @intCast(@as(u16, @bitCast(op.a1))));
                 } else {
                     ip += 1;
                 }
