@@ -1,6 +1,7 @@
 const std = @import("std");
 const vm = @import("vm.zig");
 const optimize = @import("optimize.zig");
+const emitter = @import("emitter.zig");
 const log = std.log;
 
 // const Op = struct {
@@ -30,7 +31,11 @@ pub fn main() !void {
 
     try link_program(alloc, &ops);
 
-    try vm.interpret(ops);
+    // std.debug.print("{any}", .{ops});
+
+    try emitter.emit(alloc, ops.items);
+
+    // try vm.interpret(ops.items);
 }
 
 fn link_program(alloc: std.mem.Allocator, ops: *std.ArrayList(vm.Op)) !void {

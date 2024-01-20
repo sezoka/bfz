@@ -3,7 +3,7 @@ const vm = @import("vm.zig");
 
 const Optimizer = *const fn (ops: *std.ArrayList(vm.Op), begin: usize, end: usize) bool;
 const Optimization_Sequence = struct {
-    seq: []const vm.Op_Code,
+    seq: []const vm.Op_Kind,
     fun: *const fn (v: []vm.Op) void,
 };
 
@@ -114,19 +114,19 @@ pub fn stage_1_peephole(ops: *std.ArrayList(vm.Op), begin: usize, end: usize) bo
     };
 
     const optimizers = [_]Optimization_Sequence{ .{
-        .seq = &[_]vm.Op_Code{ .loop_begin, .add, .loop_end },
+        .seq = &[_]vm.Op_Kind{ .loop_begin, .add, .loop_end },
         .fun = optimizer_functions.set_zero,
     }, .{
-        .seq = &[_]vm.Op_Code{ .set, .add },
+        .seq = &[_]vm.Op_Kind{ .set, .add },
         .fun = optimizer_functions.add_to_set,
     }, .{
-        .seq = &[_]vm.Op_Code{ .add, .set },
+        .seq = &[_]vm.Op_Kind{ .add, .set },
         .fun = optimizer_functions.replace_add_with_set,
     }, .{
-        .seq = &[_]vm.Op_Code{ .set, .set },
+        .seq = &[_]vm.Op_Kind{ .set, .set },
         .fun = optimizer_functions.dedup_sets,
     }, .{
-        .seq = &[_]vm.Op_Code{ .loop_begin, .shift, .loop_end },
+        .seq = &[_]vm.Op_Kind{ .loop_begin, .shift, .loop_end },
         .fun = optimizer_functions.scan_loop,
     } };
 
@@ -163,19 +163,19 @@ pub fn stage_2_peephole(ops: *std.ArrayList(vm.Op), begin: usize, end: usize) bo
 
     const optimizers = [_]Optimization_Sequence{
         .{
-            .seq = &[_]vm.Op_Code{ .shift, .add },
+            .seq = &[_]vm.Op_Kind{ .shift, .add },
             .fun = optimizer_functions.shifted_add,
         },
         .{
-            .seq = &[_]vm.Op_Code{ .shift, .add_offset },
+            .seq = &[_]vm.Op_Kind{ .shift, .add_offset },
             .fun = optimizer_functions.shifted_add_offset,
         },
         .{
-            .seq = &[_]vm.Op_Code{ .shift, .set },
+            .seq = &[_]vm.Op_Kind{ .shift, .set },
             .fun = optimizer_functions.shifted_set,
         },
         .{
-            .seq = &[_]vm.Op_Code{ .set, .set_offset },
+            .seq = &[_]vm.Op_Kind{ .set, .set_offset },
             .fun = optimizer_functions.shifted_set_offset,
         },
     };
@@ -203,7 +203,7 @@ fn peephole_optimize_for(ops: *std.ArrayList(vm.Op), begin: usize, end: usize, o
     return effective;
 }
 
-fn search_seq(start: usize, arr: []vm.Op, seq: []const vm.Op_Code) usize {
+fn search_seq(start: usize, arr: []vm.Op, seq: []const vm.Op_Kind) usize {
     var pos = start + seq.len - 1;
     outer: while (pos < arr.len) {
         var i: usize = 0;
